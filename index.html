@@ -194,10 +194,6 @@ input:checked + .slider:before { transform: translateX(24px); }
 </div>
 
 <script>
-/* ===========================
-   CORE CODE (same as original)
-   =========================== */
-
 let items = [];
 let currentPage = 1;
 const perPage = 50;
@@ -206,7 +202,7 @@ let isCompact = localStorage.getItem('compactMode') === 'true';
 const statusEl = document.getElementById('status');
 const SHEETDB_BASE = "https://sheetdb.io/api/v1/bykhl1ncapip9";
 
-// Mock data
+// Mock data fallback
 const mockData = [
     { "item no": "0720", "part no": "0720", "description": "0720 AC CONDENSOR NIS PICK UP 02-09", "category": "AC PARTS ITEMS", "qty": "0" },
     { "item no": "4060-ZC026", "part no": "44060-ZC026/SP1512", "description": "44060-ZC026 BRAKE PAD RR NIS ARMADA 07-", "category": "BRAKE PAD", "qty": "25.5" },
@@ -296,9 +292,7 @@ loadData();
 
 document.getElementById('btn-refresh').addEventListener('click',loadData);
 
-/* ===========================
-   QR + BARCODE SCANNER FIXED
-   =========================== */
+/* ========= FIXED LOCAL SCANNER LOADER ========= */
 
 let html5QrcodeLoaded=false;
 let qrScanner=null;
@@ -306,10 +300,11 @@ let qrScanner=null;
 function loadHtml5QrcodeScript(){
   return new Promise((resolve,reject)=>{
     if(html5QrcodeLoaded) return resolve();
+
     const s=document.createElement("script");
-    s.src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js";
+    s.src="html5-qrcode.min.js";   // LOCAL FIX ✔
     s.onload=()=>{html5QrcodeLoaded=true;resolve();};
-    s.onerror=()=>reject("Failed to load scanner library.");
+    s.onerror=()=>reject("Failed to load local scanner library.");
     document.head.appendChild(s);
   });
 }
