@@ -53,7 +53,11 @@ th {
     text-align: left;
     transition: background 0.3s ease;
 }
-body.dark th { background: #2c3e50; color: #ecf0f1; border-bottom-color: #555; }
+body.dark th { 
+    background: #2c3e50; 
+    color: #ecf0f1; 
+    border-bottom-color: #555; 
+}
 td {
     padding: 10px;
     border-bottom: 1px solid #eee;
@@ -101,27 +105,74 @@ body.dark tr:hover, body.dark tr:active { background: #3d566e; }
 .compact #jumpPage { width: 100px; }
 
 /* Topbar */
-.topbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-.btn { padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; margin-right: 6px; }
+.topbar { 
+    display:flex; 
+    gap:10px; 
+    align-items:center; 
+    margin-bottom:12px; 
+    flex-wrap:wrap; 
+}
+.btn { 
+    padding: 8px 12px; 
+    border-radius: 6px; 
+    border: none; 
+    cursor: pointer; 
+    margin-right: 6px; 
+}
 .btn-primary { background: #007bff; color: white; }
-.btn-ghost { background: transparent; border: 1px solid #007bff; color: #007bff; }
+.btn-ghost { 
+    background: transparent; 
+    border: 1px solid #007bff; 
+    color: #007bff; 
+}
 
 /* Toggles */
 .toggles { display: flex; gap: 15px; }
-.toggle { position: relative; display: inline-block; width: 50px; height: 26px; }
+.toggle { 
+    position: relative; 
+    display: inline-block; 
+    width: 50px; 
+    height: 26px; 
+}
 .toggle input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-  background: #ccc; transition: 0.3s; border-radius: 26px; }
-.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
-  background: white; transition: 0.3s; border-radius: 50%; }
+.slider { 
+    position: absolute; 
+    cursor: pointer; 
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #ccc; 
+    transition: 0.3s; 
+    border-radius: 26px; 
+}
+.slider:before { 
+    position: absolute; 
+    content: ""; 
+    height: 20px; width: 20px; 
+    left: 3px; bottom: 3px;
+    background: white; 
+    transition: 0.3s; 
+    border-radius: 50%; 
+}
 input:checked + .slider { background: #007bff; }
 input:checked + .slider:before { transform: translateX(24px); }
 
 /* Modal */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-  display: none; align-items: center; justify-content: center; z-index: 999; }
-.modal { background: white; padding: 16px; border-radius: 8px; width: 720px; max-width: 95%;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+.modal-backdrop { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.45);
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 999; 
+}
+.modal { 
+    background: white; 
+    padding: 16px; 
+    border-radius: 8px; 
+    width: 720px; 
+    max-width: 95%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2); 
+}
 #qr-reader { width:100%; min-height:260px; }
 
 /* Responsive */
@@ -218,14 +269,21 @@ localStorage.setItem('darkMode',isDark);}
 function toggleCompact(){isCompact=!isCompact;document.body.classList.toggle('compact',isCompact);
 localStorage.setItem('compactMode',isCompact);}
 
-function cleanKeys(row){let fixed={};for(let key in row){
-fixed[key.trim()] = (row[key]+"").trim();}return fixed;}
+function cleanKeys(row){
+    let fixed={};
+    for(let key in row){
+        fixed[key.trim()] = (row[key]+"").trim();
+    }
+    return fixed;
+}
 
 function display(list){
-    const tbody=document.getElementById("table-body");tbody.innerHTML="";
+    const tbody=document.getElementById("table-body");
+    tbody.innerHTML="";
     const startIndex=(currentPage-1)*perPage;
     const headers=['S.No','Item No','Part No','Description','Category','Qty'];
-    for(let index=0;index<list.length;index++){
+
+    for(let index=0; index<list.length; index++){
         const row=list[index];
         let rowHtml="<tr>";
         rowHtml+=`<td data-label="${headers[0]}">${startIndex+index+1}</td>`;
@@ -265,7 +323,6 @@ function render(){
 }
 
 document.getElementById("search").addEventListener("input",()=>{currentPage=1;render();});
-
 document.getElementById("prev-page").addEventListener("click",()=>{if(currentPage>1)currentPage--;render();});
 document.getElementById("next-page").addEventListener("click",()=>{currentPage++;render();});
 
@@ -292,10 +349,12 @@ loadData();
 
 document.getElementById('btn-refresh').addEventListener('click',loadData);
 
-/* ========= FIXED LOCAL SCANNER LOADER ========= */
+/* ========= FIXED LOCAL SCANNER (AUTO CLOSE + SOUND + AUTOFOCUS) ========= */
 
 let html5QrcodeLoaded=false;
 let qrScanner=null;
+
+const scanBeep=new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjgzLjEwMAAAAAAAAAAAAAAA//tQxAADBjQACgAAAAEAAwBCAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
 
 function loadHtml5QrcodeScript(){
   return new Promise((resolve,reject)=>{
@@ -315,15 +374,22 @@ const qrReader=document.getElementById("qr-reader");
 document.getElementById("btn-scan").addEventListener("click",openQR);
 document.getElementById("qr-close").addEventListener("click",closeQR);
 
+let scanLock=false;
+
 async function openQR(){
   qrBackdrop.style.display="flex";
+  scanLock=false;
+
   try{
     await loadHtml5QrcodeScript();
     qrReader.innerHTML="";
     qrScanner=new Html5Qrcode("qr-reader");
 
     const config={
-      fps:10,qrbox:250,
+      fps:15,
+      qrbox:250,
+      aspectRatio:1.777,
+      experimentalFeatures:{useBarCodeDetectorIfSupported:true},
       formatsToSupport:[
         Html5QrcodeSupportedFormats.QR_CODE,
         Html5QrcodeSupportedFormats.EAN_13,
@@ -335,14 +401,28 @@ async function openQR(){
     };
 
     qrScanner.start(
-      {facingMode:"environment"},
+      {
+        facingMode:{ideal:"environment"},
+        focusMode:"continuous",
+        advanced:[{focusMode:"continuous"}]
+      },
       config,
+
       message=>{
+        if(scanLock) return;
+        scanLock=true;
+
+        scanBeep.play(); // 🔊 sound
+
         document.getElementById("search").value=message;
-        currentPage=1;render();
+        currentPage=1;
+        render();
+
+        closeQR(); // auto close
       },
       error=>{}
     );
+
   }catch(e){
     alert("Scanner error: "+e);
     qrBackdrop.style.display="none";
