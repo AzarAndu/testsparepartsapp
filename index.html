@@ -183,9 +183,9 @@ input:checked + .slider:before { transform: translateX(24px); }
 <button onclick="jumpToPage()">Go</button>
 
 <!-- QR / Barcode Scanner Modal -->
-<div id="qr-backdrop" class="modal-backdrop" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Scanner modal">
-    <h3 style="color: #999;">Scanner (QR + Barcode)</h3>
+<div id="qr-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <h3>Scanner (QR + Barcode)</h3>
     <div id="qr-reader"></div>
     <div style="text-align:right; margin-top:8px;">
       <button class="btn" id="qr-close">Close</button>
@@ -194,10 +194,6 @@ input:checked + .slider:before { transform: translateX(24px); }
 </div>
 
 <script>
-/* ===========================
-   ORIGINAL APP LOGIC (unchanged)
-   =========================== */
-
 let items = [];
 let currentPage = 1;
 const perPage = 50;
@@ -222,21 +218,14 @@ localStorage.setItem('darkMode',isDark);}
 function toggleCompact(){isCompact=!isCompact;document.body.classList.toggle('compact',isCompact);
 localStorage.setItem('compactMode',isCompact);}
 
-function cleanKeys(row){
-    let fixed={};
-    for(let key in row){
-        fixed[key.trim()] = (row[key]+"").trim();
-    }
-    return fixed;
-}
+function cleanKeys(row){let fixed={};for(let key in row){
+fixed[key.trim()] = (row[key]+"").trim();}return fixed;}
 
 function display(list){
-    const tbody=document.getElementById("table-body");
-    tbody.innerHTML="";
+    const tbody=document.getElementById("table-body");tbody.innerHTML="";
     const startIndex=(currentPage-1)*perPage;
     const headers=['S.No','Item No','Part No','Description','Category','Qty'];
-
-    for(let index=0; index<list.length; index++){
+    for(let index=0;index<list.length;index++){
         const row=list[index];
         let rowHtml="<tr>";
         rowHtml+=`<td data-label="${headers[0]}">${startIndex+index+1}</td>`;
@@ -276,6 +265,7 @@ function render(){
 }
 
 document.getElementById("search").addEventListener("input",()=>{currentPage=1;render();});
+
 document.getElementById("prev-page").addEventListener("click",()=>{if(currentPage>1)currentPage--;render();});
 document.getElementById("next-page").addEventListener("click",()=>{currentPage++;render();});
 
@@ -302,165 +292,39 @@ loadData();
 
 document.getElementById('btn-refresh').addEventListener('click',loadData);
 
-/* ===========================
-   ROBUST LOCAL SCANNER LOADER
-   - Tries ./html5-qrcode.min.js first
-   - Falls back to raw.githubusercontent.com for your repo
-   =========================== */
+/* ========= FIXED LOCAL SCANNER LOADER ========= */
 
 let html5QrcodeLoaded=false;
 let qrScanner=null;
 
-const scanBeep = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjgzLjEwMAAAAAAAAAAAAAAA//tQxAADBjQACgAAAAEAAwBCAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
-// small short beep (tiny base64 mp3)
-
-function injectScriptText(code){
+function loadHtml5QrcodeScript(){
   return new Promise((resolve,reject)=>{
-    try{
-      const s = document.createElement('script');
-      s.type = "text/javascript";
-      s.text = code;
-      document.head.appendChild(s);
-      html5QrcodeLoaded = true;
-      resolve();
-    }catch(e){
-      reject(e);
-    }
-  });
-}
+    if(html5QrcodeLoaded) return resolve();
 
-function tryLoadLocalScript(){
-  return new Promise((resolve,reject)=>{
-    // Try relative local file first
-    const s = document.createElement('script');
-    s.src = "./html5-qrcode.min.js";
-    s.onload = () => { html5QrcodeLoaded = true; resolve(); };
-    s.onerror = () => reject(new Error("local-failed"));
+    const s=document.createElement("script");
+    s.src="html5-qrcode.min.js";   // LOCAL FIX ✔
+    s.onload=()=>{html5QrcodeLoaded=true;resolve();};
+    s.onerror=()=>reject("Failed to load local scanner library.");
     document.head.appendChild(s);
   });
 }
 
-function tryFetchRawGithub(){
-  return new Promise((resolve,reject)=>{
-    // Attempt to fetch raw file from your repo automatically
-    try {
-      const originPath = window.location.pathname || "/";
-      // attempt best-guess repo path from current URL
-      // e.g. https://username.github.io/reponame/... -> /reponame/ present
-      let repoPrefix = "";
-      const parts = originPath.split("/").filter(Boolean);
-      if(parts.length>0){
-        // assume first part is repo name when served as user.github.io/repo
-        repoPrefix = "/" + parts[0];
-      }
+const qrBackdrop=document.getElementById("qr-backdrop");
+const qrReader=document.getElementById("qr-reader");
 
-      // Build raw.githubusercontent.com URL using GitHub username/repo from window.location.host + repoPrefix
-      // This is a best-effort fallback: if repo is different, user can upload the local file.
-      const hostname = window.location.hostname; // e.g. azarandu.github.io
-      let rawUrl = null;
-      if(hostname.endsWith("github.io") && parts.length>0){
-        const username = hostname.split(".")[0];
-        const repo = parts[0];
-        rawUrl = "https://raw.githubusercontent.com/" + username + "/" + repo + "/main/html5-qrcode.min.js";
-      } else {
-        // generic fallback to raw file at mebjas CDN (only used if the user wants it)
-        rawUrl = "https://raw.githubusercontent.com/mebjas/html5-qrcode/master/dist/html5-qrcode.min.js";
-      }
-
-      fetch(rawUrl).then(resp=>{
-          if(!resp.ok) throw new Error("raw-fetch-failed");
-          return resp.text();
-      }).then(txt=>{
-          if(!txt || txt.length < 200) throw new Error("raw-too-small");
-          return injectScriptText(txt);
-      }).then(()=>resolve()).catch(err=>reject(err));
-    } catch(e){
-      reject(e);
-    }
-  });
-}
-
-async function loadHtml5QrcodeScript(){
-  if(html5QrcodeLoaded) return;
-  // First, try exact local file (fast, reliable if present in repo root)
-  try {
-    await tryLoadLocalScript();
-    return;
-  } catch(e){
-    // ignore and try raw
-  }
-  // Try fetching raw from GitHub repo (your repo)
-  try {
-    await tryFetchRawGithub();
-    return;
-  } catch(e){
-    // final fallback: try to load from unpkg (may be blocked on GitHub Pages)
-    return new Promise((resolve,reject)=>{
-      const s = document.createElement('script');
-      s.src = "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js";
-      s.onload=()=>{ html5QrcodeLoaded=true; resolve(); };
-      s.onerror=()=>reject(new Error("All scanner load attempts failed."));
-      document.head.appendChild(s);
-    });
-  }
-}
-
-/* ===========================
-   SCANNER: OPEN / CLOSE / AUTO-CLOSE ON SUCCESS
-   =========================== */
-
-const qrBackdrop = document.getElementById("qr-backdrop");
-const qrReader = document.getElementById("qr-reader");
-const scanButton = document.getElementById("btn-scan");
-const qrCloseButton = document.getElementById("qr-close");
-
-scanButton.addEventListener("click", openQR);
-qrCloseButton.addEventListener("click", closeQR);
-
-let scanLock = false;
-
-function safeClearScanner(){
-  if(qrScanner){
-    // stop and clear existing scanner safely
-    try{
-      qrScanner.stop().then(()=>{ try{ qrScanner.clear(); }catch(e){} }).catch(()=>{});
-    }catch(e){}
-    qrScanner = null;
-  }
-}
+document.getElementById("btn-scan").addEventListener("click",openQR);
+document.getElementById("qr-close").addEventListener("click",closeQR);
 
 async function openQR(){
-  // Reset and show modal
-  scanLock = false;
-  qrReader.innerHTML = ""; // clear previous
-  qrBackdrop.style.display = "flex";
-  qrBackdrop.setAttribute("aria-hidden","false");
-
-  // wait next animation frame + short delay so element is visible and has dimensions
-  await new Promise(r => requestAnimationFrame(()=>setTimeout(r, 220)));
-
+  qrBackdrop.style.display="flex";
   try{
     await loadHtml5QrcodeScript();
-  }catch(e){
-    alert("Scanner library failed to load: "+ (e && e.message ? e.message : e));
-    qrBackdrop.style.display = "none";
-    qrBackdrop.setAttribute("aria-hidden","true");
-    return;
-  }
+    qrReader.innerHTML="";
+    qrScanner=new Html5Qrcode("qr-reader");
 
-  // If a previous scanner/stream exists, clear it first
-  safeClearScanner();
-
-  try{
-    // Create instance
-    qrScanner = new Html5Qrcode("qr-reader");
-
-    const config = {
-      fps: 15,
-      qrbox: 250,
-      aspectRatio: 1.777,
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-      formatsToSupport: [
+    const config={
+      fps:10,qrbox:250,
+      formatsToSupport:[
         Html5QrcodeSupportedFormats.QR_CODE,
         Html5QrcodeSupportedFormats.EAN_13,
         Html5QrcodeSupportedFormats.EAN_8,
@@ -470,64 +334,28 @@ async function openQR(){
       ]
     };
 
-    // Start with camera constraints friendly for autofocus and environment camera
-    const cameraConstraints = {
-      facingMode: { ideal: "environment" }
-    };
-
-    // Try to include some advanced autofocus hints when supported
-    // Html5Qrcode's start accepts a constraints-like object; the library will apply them if supported.
-    const startConstraints = {
-      ...cameraConstraints,
-      // note: focusMode and advanced are best-effort; some browsers ignore them.
-      focusMode: "continuous",
-      advanced: [{ focusMode: "continuous" }]
-    };
-
-    await qrScanner.start(
-      startConstraints,
+    qrScanner.start(
+      {facingMode:"environment"},
       config,
-      (decodedText, decodedResult) => {
-        if (scanLock) return;
-        scanLock = true;
-        try { scanBeep.play(); } catch(e){ /* ignore audio play errors */ }
-
-        // populate search and show result
-        document.getElementById("search").value = decodedText;
-        currentPage = 1;
-        render();
-
-        // close scanner and clear resources
-        closeQR();
+      message=>{
+        document.getElementById("search").value=message;
+        currentPage=1;render();
       },
-      (errorMessage) => {
-        // We intentionally ignore frequent scan errors, they are normal during scanning
-      }
+      error=>{}
     );
-
-  }catch(err){
-    // typical errors: NotFoundError, NotReadableError, OverconstrainedError
-    console.error("Failed to start scanner:", err);
-    alert("Camera failed to start: " + (err && err.message ? err.message : err));
-    qrBackdrop.style.display = "none";
-    qrBackdrop.setAttribute("aria-hidden","true");
-
-    // ensure any partial streams are stopped
-    safeClearScanner();
+  }catch(e){
+    alert("Scanner error: "+e);
+    qrBackdrop.style.display="none";
   }
 }
 
 function closeQR(){
-  qrBackdrop.style.display = "none";
-  qrBackdrop.setAttribute("aria-hidden","true");
-
-  // stop & clear the scanner safely
-  safeClearScanner();
+  qrBackdrop.style.display="none";
+  if(qrScanner){
+    qrScanner.stop().then(()=>qrScanner.clear()).catch(()=>{});
+    qrScanner=null;
+  }
 }
-
-/* make sure we free camera when page is unloaded */
-window.addEventListener("pagehide", ()=>{ safeClearScanner(); });
-window.addEventListener("beforeunload", ()=>{ safeClearScanner(); });
 </script>
 </body>
 </html>
